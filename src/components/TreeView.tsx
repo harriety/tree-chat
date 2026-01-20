@@ -1,0 +1,252 @@
+import React, { useState } from "react";
+import type { ChatTree, ChatNode } from "../types/chat";
+
+type Props = {
+  tree: ChatTree;
+  visibleNodeIds?: Set<string> | null;
+  autoRenameId?: string | null;
+  onAutoRename?: (nodeId: string) => void;
+  onSelect: (nodeId: string) => void;
+  onAddChild: (parentId: string) => void;
+  onToggleCollapse: (nodeId: string) => void;
+  onRename: (nodeId: string, title: string) => void;
+  onDelete: (nodeId: string) => void;
+};
+
+export function TreeView({
+  tree,
+  visibleNodeIds,
+  autoRenameId,
+  onAutoRename,
+  onSelect,
+  onAddChild,
+  onToggleCollapse,
+  onRename,
+  onDelete,
+}: Props) {
+  const root = tree.nodes[tree.rootId];
+
+  return (
+    <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif" }}>
+      <div style={{ fontWeight: 700, marginBottom: 8 }}>Threads</div>
+      <TreeNodeView
+        tree={tree}
+        node={root}
+        depth={0}
+        visibleNodeIds={visibleNodeIds}
+        autoRenameId={autoRenameId}
+        onAutoRename={onAutoRename}
+        onSelect={onSelect}
+        onAddChild={onAddChild}
+        onToggleCollapse={onToggleCollapse}
+        onRename={onRename}
+        onDelete={onDelete}
+      />
+    </div>
+  );
+}
+
+function TreeNodeView({
+  tree,
+  node,
+  depth,
+  visibleNodeIds,
+  autoRenameId,
+  onAutoRename,
+  onSelect,
+  onAddChild,
+  onToggleCollapse,
+  onRename,
+  onDelete,
+}: {
+  tree: ChatTree;
+  node: ChatNode;
+  depth: number;
+  visibleNodeIds?: Set<string> | null;
+  autoRenameId?: string | null;
+  onAutoRename?: (nodeId: string) => void;
+  onSelect: (nodeId: string) => void;
+  onAddChild: (parentId: string) => void;
+  onToggleCollapse: (nodeId: string) => void;
+  onRename: (nodeId: string, title: string) => void;
+  onDelete: (nodeId: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(node.title);
+  const isActive = tree.activeNodeId === node.id;
+  const hasChildren = node.childrenIds.length > 0;
+  const isVisible = !visibleNodeIds || visibleNodeIds.has(node.id);
+
+  if (!isVisible) return null;
+
+  const handleRename = () => {
+    if (editTitle.trim() !== node.title) {
+      onRename(node.id, editTitle);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleRename();
+    } else if (e.key === "Escape") {
+      setEditTitle(node.title);
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "6px 8px",
+          marginLeft: depth * 12,
+          borderRadius: 8,
+          cursor: "pointer",
+          background: isActive ? "rgba(0,0,0,0.08)" : "transparent",
+        }}
+        onClick={() => onSelect(node.id)}
+        title={node.id}
+      >
+        {/* Collapse button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (hasChildren) onToggleCollapse(node.id);
+          }}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            border: "1px solid rgba(0,0,0,0.15)",
+            background: "white",
+            cursor: hasChildren ? "pointer" : "not-allowed",
+            opacity: hasChildren ? 1 : 0.4,
+          }}
+          aria-label="toggle collapse"
+        >
+          {hasChildren ? (node.isCollapsed ? "▸" : "▾") : "•"}
+        </button>
+
+        {/* Title */}
+        <div style={{ flex: 1, fontSize: 14, lineHeight: 1.2 }}>
+          {isEditing ? (
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleRename}
+              autoFocus
+              style={{
+                width: "100%",
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid rgba(0,0,0,0.15)",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <div
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(true);
+                setEditTitle(node.title);
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>{node.title || "Untitled"}</div>
+              <div style={{ fontSize: 12, opacity: 0.65 }}>
+                {node.messages.length} msgs · {node.childrenIds.length} children
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Add child */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddChild(node.id);
+          }}
+          style={{
+            borderRadius: 8,
+            border: "1px solid rgba(0,0,0,0.15)",
+            background: "white",
+            padding: "4px 8px",
+            cursor: "pointer",
+          }}
+        >
+          + Child
+        </button>
+
+        {onAutoRename ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAutoRename(node.id);
+            }}
+            disabled={autoRenameId === node.id}
+            style={{
+              borderRadius: 8,
+              border: "1px solid rgba(0,0,0,0.15)",
+              background: autoRenameId === node.id ? "rgba(0,0,0,0.04)" : "white",
+              padding: "4px 8px",
+              cursor: autoRenameId === node.id ? "not-allowed" : "pointer",
+            }}
+          >
+            {autoRenameId === node.id ? "Auto..." : "Auto Name"}
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const ok = window.confirm("Delete this node and all its children?");
+            if (ok) onDelete(node.id);
+          }}
+          style={{
+            borderRadius: 8,
+            border: "1px solid rgba(0,0,0,0.15)",
+            background: "white",
+            padding: "4px 8px",
+            cursor: "pointer",
+          }}
+        >
+          Delete
+        </button>
+      </div>
+
+      {!node.isCollapsed &&
+        node.childrenIds.map((cid) => {
+          const child = tree.nodes[cid];
+          if (!child) return null;
+          return (
+            <TreeNodeView
+              key={cid}
+              tree={tree}
+              node={child}
+              depth={depth + 1}
+              visibleNodeIds={visibleNodeIds}
+              autoRenameId={autoRenameId}
+              onAutoRename={onAutoRename}
+              onSelect={onSelect}
+              onAddChild={onAddChild}
+              onToggleCollapse={onToggleCollapse}
+              onRename={onRename}
+              onDelete={onDelete}
+            />
+          );
+        })}
+    </div>
+  );
+}
+

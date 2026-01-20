@@ -1,73 +1,105 @@
-# React + TypeScript + Vite
+# Tree-Chat 🌳
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Tree-Chat is an **LLM-first chat workspace** that organizes conversations as a **tree of threaded nodes**, instead of a single linear chat stream.
 
-Currently, two official plugins are available:
+Each node represents a **self-contained conversation context**, allowing users to branch, explore, revisit, and compare multiple reasoning paths in parallel — without losing context.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Tree-Chat is designed for **non-linear thinkers**, deep exploration, and AI-assisted reasoning workflows where ideas naturally diverge and evolve.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Why Tree-Chat?
 
-## Expanding the ESLint configuration
+Traditional chat interfaces force all thoughts into a single chronological timeline.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+This model works for simple Q&A, but breaks down when ideas diverge, assumptions need to be revisited, or multiple alternatives must be explored in parallel.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Tree-Chat mirrors how humans actually think:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+* Ideas branch naturally
+* Early assumptions can be revisited and refined
+* Multiple hypotheses can be explored side by side
+* Context is preserved per branch, not overwritten
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+In Tree-Chat, every node is both:
+
+* an **independent chat thread**, and
+* a **connected part of a larger reasoning tree**
+
+---
+
+## Key Features
+
+* Tree-structured, threaded conversations
+* Branching and collapsing nodes
+* Delete an entire subtree with one-step undo
+* LLM-powered node auto-naming and summarization
+* Streaming responses with cancel and retry support
+* Tree View and Mindmap View for navigation and visualization
+* Local-first persistence with automatic backups
+* Import and export conversations as portable JSON
+
+---
+
+## How to Use
+
+### Local Setup
+
+#### Requirements
+
+* Node.js 18+
+* npm
+
+#### Install dependencies
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+#### Environment variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Copy the example environment file:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cp env.example .env
 ```
+
+Edit `.env` and add your API keys as needed:
+
+```env
+VITE_OPENAI_API_KEY=your_api_key
+VITE_GEMINI_API_KEY=your_api_key
+```
+
+You can configure a default LLM provider via environment variables or switch providers directly in the UI.
+
+#### Run locally
+
+```bash
+npm run dev
+```
+
+Then open the local URL shown in the terminal (usually `http://localhost:5173`).
+
+All conversations are saved automatically in the browser.
+
+---
+
+## Project Status
+
+Tree-Chat is an actively evolving prototype focused on:
+
+* structured reasoning
+* exploratory AI workflows
+* scalable conversation models beyond linear chat
+
+Contributions, feedback, and ideas are welcome.
+
+---
+
+## Built With
+
+* React + TypeScript + Vite
+* React Flow + dagre for visualization
+* Provider-agnostic LLM adapter
+* Immutable tree-based state architecture
