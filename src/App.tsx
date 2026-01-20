@@ -45,6 +45,75 @@ const formatMarkdownToHtml = (value: string) => {
         .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
         .replace(/\*([^*]+)\*/g, "<em>$1</em>");
 
+    const renderInlineMath = (raw: string) => {
+      let out = "";
+      let i = 0;
+
+      while (i < raw.length) {
+        // Prefer \(...\) if present (common LLM output)
+        const openParen = raw.indexOf("\\(", i);
+        const openDollar = raw.indexOf("$", i);
+
+        const useParen =
+          openParen !== -1 && (openDollar === -1 || openParen < openDollar);
+
+        const start = useParen ? openParen : openDollar;
+        if (start === -1) {
+          out += formatText(raw.slice(i));
+          break;
+        }
+
+        if (!useParen) {
+          // Escaped dollar: \$
+          if (start > 0 && raw[start - 1] === "\\") {
+            out += formatText(raw.slice(i, start - 1));
+            out += formatText("$");
+            i = start + 1;
+            continue;
+          }
+
+          // Don't treat $$ as inline math here (block math is handled earlier)
+          if (raw[start + 1] === "$") {
+            out += formatText(raw.slice(i, start + 2));
+            i = start + 2;
+            continue;
+          }
+        }
+
+        const close = useParen ? "\\)" : "$";
+        const openLen = useParen ? 2 : 1;
+        let end = raw.indexOf(close, start + openLen);
+        while (!useParen && end !== -1 && raw[end - 1] === "\\") {
+          end = raw.indexOf(close, end + 1);
+        }
+
+        if (end === -1) {
+          out += formatText(raw.slice(i));
+          break;
+        }
+
+        out += formatText(raw.slice(i, start));
+        const expr = raw.slice(start + openLen, end).trim();
+        const looksLikeMath = /[\\{}_^=]|[A-Za-z]/.test(expr);
+
+        if (expr && looksLikeMath) {
+          const html = katex.renderToString(expr, {
+            displayMode: false,
+            throwOnError: false,
+            strict: "ignore",
+          });
+          out += `<span class="chat-md-imath">${html}</span>`;
+        } else {
+          const closeLen = useParen ? 2 : 1;
+          out += formatText(raw.slice(start, end + closeLen));
+        }
+
+        i = end + (useParen ? 2 : 1);
+      }
+
+      return out;
+    };
+
     const parts: Array<{ type: "text" | "code"; value: string }> = [];
     let lastIndex = 0;
     for (const match of text.matchAll(/`([^`]+)`/g)) {
@@ -64,30 +133,7 @@ const formatMarkdownToHtml = (value: string) => {
         return `<code>${escapeHtml(part.value)}</code>`;
       }
 
-      const out: string[] = [];
-      let pos = 0;
-      for (const match of part.value.matchAll(/\$([^$\n]+?)\$/g)) {
-        const index = match.index ?? 0;
-        if (index > pos) out.push(formatText(part.value.slice(pos, index)));
-
-        const full = match[0];
-        const expr = String(match[1]).trim();
-        const looksLikeMath = /[\\{}_^=]|[A-Za-z]/.test(expr);
-        if (looksLikeMath) {
-          const html = katex.renderToString(expr, {
-            displayMode: false,
-            throwOnError: false,
-            strict: "ignore",
-          });
-          out.push(`<span class="chat-md-imath">${html}</span>`);
-        } else {
-          out.push(formatText(full));
-        }
-
-        pos = index + full.length;
-      }
-      if (pos < part.value.length) out.push(formatText(part.value.slice(pos)));
-      return out.join("");
+      return renderInlineMath(part.value);
     });
 
     return rendered.join("");
@@ -107,9 +153,8 @@ const formatMarkdownToHtml = (value: string) => {
     }
 
     const mathBlocks: string[] = [];
-    const withBlockMathTokens = normalizeText(part).replace(
-      /\$\$([\s\S]+?)\$\$/g,
-      (_, expr: string) => {
+    const withBlockMathTokens = normalizeText(part)
+      .replace(/\$\$([\s\S]+?)\$\$/g, (_, expr: string) => {
         const html = katex.renderToString(String(expr).trim(), {
           displayMode: true,
           throwOnError: false,
@@ -117,8 +162,16 @@ const formatMarkdownToHtml = (value: string) => {
         });
         mathBlocks.push(html);
         return `\n@@BMATH${mathBlocks.length - 1}@@\n`;
-      }
-    );
+      })
+      .replace(/\\\[([\s\S]+?)\\\]/g, (_, expr: string) => {
+        const html = katex.renderToString(String(expr).trim(), {
+          displayMode: true,
+          throwOnError: false,
+          strict: "ignore",
+        });
+        mathBlocks.push(html);
+        return `\n@@BMATH${mathBlocks.length - 1}@@\n`;
+      });
 
     const lines = normalizeText(withBlockMathTokens).split("\n");
     const blocks: string[] = [];

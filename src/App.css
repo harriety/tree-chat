@@ -77,9 +77,16 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
+.chat-md-imath {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
 .chat-md-imath .katex {
   font-size: 1em;
 }
+
 
 .logo {
   height: 6em;
