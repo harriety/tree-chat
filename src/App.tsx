@@ -84,6 +84,18 @@ const formatMarkdownToHtml = (value: string) => {
         continue;
       }
 
+      const headingMatch = /^(#{1,6})\s+(.+)$/.exec(trimmed);
+      if (headingMatch) {
+        flushList();
+        flushParagraph();
+        const level = headingMatch[1].length;
+        const text = headingMatch[2];
+        blocks.push(
+          `<div class="chat-md-h chat-md-h${level}">${formatInline(text)}</div>`
+        );
+        continue;
+      }
+
       const listMatch = /^[-*]\s+(.+)$/.exec(trimmed);
       if (listMatch) {
         flushParagraph();

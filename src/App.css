@@ -10,7 +10,26 @@
   margin: 0;
 }
 
+.chat-md-h {
+  margin: 0;
+  font-weight: 800;
+}
+
+.chat-md-h1,
+.chat-md-h2 {
+  font-size: 1.05em;
+}
+
+.chat-md-h3,
+.chat-md-h4,
+.chat-md-h5,
+.chat-md-h6 {
+  font-size: 1em;
+}
+
 .chat-md p + p,
+.chat-md-h + p,
+.chat-md-h + ul,
 .chat-md p + ul,
 .chat-md ul + p,
 .chat-md ul + ul,
