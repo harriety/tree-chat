@@ -68,6 +68,19 @@
   padding: 0;
 }
 
+.chat-md-math {
+  display: flex;
+  justify-content: flex-start;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.chat-md-imath .katex {
+  font-size: 1em;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

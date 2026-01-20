@@ -1,4 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 import { MindmapView } from "./components/MindmapView";
 import { TreeView } from "./components/TreeView";
@@ -37,11 +39,59 @@ const escapeHtml = (value: string) =>
     .replace(/'/g, "&#39;");
 
 const formatMarkdownToHtml = (value: string) => {
-  const formatInline = (text: string) =>
-    escapeHtml(text)
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  const formatInline = (text: string) => {
+    const formatText = (raw: string) =>
+      escapeHtml(raw)
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+
+    const parts: Array<{ type: "text" | "code"; value: string }> = [];
+    let lastIndex = 0;
+    for (const match of text.matchAll(/`([^`]+)`/g)) {
+      const index = match.index ?? 0;
+      if (index > lastIndex) {
+        parts.push({ type: "text", value: text.slice(lastIndex, index) });
+      }
+      parts.push({ type: "code", value: match[1] });
+      lastIndex = index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: "text", value: text.slice(lastIndex) });
+    }
+
+    const rendered = parts.map((part) => {
+      if (part.type === "code") {
+        return `<code>${escapeHtml(part.value)}</code>`;
+      }
+
+      const out: string[] = [];
+      let pos = 0;
+      for (const match of part.value.matchAll(/\$([^$\n]+?)\$/g)) {
+        const index = match.index ?? 0;
+        if (index > pos) out.push(formatText(part.value.slice(pos, index)));
+
+        const full = match[0];
+        const expr = String(match[1]).trim();
+        const looksLikeMath = /[\\{}_^=]|[A-Za-z]/.test(expr);
+        if (looksLikeMath) {
+          const html = katex.renderToString(expr, {
+            displayMode: false,
+            throwOnError: false,
+            strict: "ignore",
+          });
+          out.push(`<span class="chat-md-imath">${html}</span>`);
+        } else {
+          out.push(formatText(full));
+        }
+
+        pos = index + full.length;
+      }
+      if (pos < part.value.length) out.push(formatText(part.value.slice(pos)));
+      return out.join("");
+    });
+
+    return rendered.join("");
+  };
 
   const normalizeText = (text: string) =>
     text
@@ -56,7 +106,21 @@ const formatMarkdownToHtml = (value: string) => {
       return `<pre><code>${escapeHtml(code)}</code></pre>`;
     }
 
-    const lines = normalizeText(part).split("\n");
+    const mathBlocks: string[] = [];
+    const withBlockMathTokens = normalizeText(part).replace(
+      /\$\$([\s\S]+?)\$\$/g,
+      (_, expr: string) => {
+        const html = katex.renderToString(String(expr).trim(), {
+          displayMode: true,
+          throwOnError: false,
+          strict: "ignore",
+        });
+        mathBlocks.push(html);
+        return `\n@@BMATH${mathBlocks.length - 1}@@\n`;
+      }
+    );
+
+    const lines = normalizeText(withBlockMathTokens).split("\n");
     const blocks: string[] = [];
 
     let paragraph: string[] = [];
@@ -81,6 +145,16 @@ const formatMarkdownToHtml = (value: string) => {
       if (!trimmed) {
         flushList();
         flushParagraph();
+        continue;
+      }
+
+      const mathTokenMatch = /^@@BMATH(\d+)@@$/.exec(trimmed.trim());
+      if (mathTokenMatch) {
+        flushList();
+        flushParagraph();
+        const idx = Number(mathTokenMatch[1]);
+        const html = mathBlocks[idx] || "";
+        if (html) blocks.push(`<div class="chat-md-math">${html}</div>`);
         continue;
       }
 
