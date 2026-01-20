@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import { MindmapView } from "./components/MindmapView";
 import { TreeView } from "./components/TreeView";
@@ -36,49 +36,83 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-const renderMarkdown = (value: string) => {
+const formatMarkdownToHtml = (value: string) => {
   const formatInline = (text: string) =>
     escapeHtml(text)
       .replace(/`([^`]+)`/g, "<code>$1</code>")
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/\*([^*]+)\*/g, "<em>$1</em>");
 
-  const parts = value.split("```");
+  const normalizeText = (text: string) =>
+    text
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+  const parts = normalizeText(value).split("```");
   const htmlParts = parts.map((part, index) => {
     if (index % 2 === 1) {
-      return `<pre><code>${escapeHtml(part)}</code></pre>`;
+      const code = part.replace(/^\n+|\n+$/g, "");
+      return `<pre><code>${escapeHtml(code)}</code></pre>`;
     }
 
-    const lines = part.split(/\r?\n/);
-    const rendered: Array<{ html: string; raw?: boolean }> = [];
-    let inList = false;
+    const lines = normalizeText(part).split("\n");
+    const blocks: string[] = [];
+
+    let paragraph: string[] = [];
+    let listItems: string[] = [];
+
+    const flushParagraph = () => {
+      if (!paragraph.length) return;
+      blocks.push(`<p>${paragraph.map(formatInline).join("<br/>")}</p>`);
+      paragraph = [];
+    };
 
     const flushList = () => {
-      if (!inList) return;
-      rendered.push({ html: "</ul>", raw: true });
-      inList = false;
+      if (!listItems.length) return;
+      blocks.push(
+        `<ul>${listItems.map((li) => `<li>${formatInline(li)}</li>`).join("")}</ul>`
+      );
+      listItems = [];
     };
 
     for (const line of lines) {
-      const listMatch = /^[-*]\s+(.+)$/.exec(line);
-      if (listMatch) {
-        if (!inList) {
-          rendered.push({ html: "<ul>", raw: true });
-          inList = true;
-        }
-        rendered.push({ html: `<li>${formatInline(listMatch[1])}</li>`, raw: true });
-      } else {
+      const trimmed = line.trimEnd();
+      if (!trimmed) {
         flushList();
-        rendered.push({ html: formatInline(line) });
+        flushParagraph();
+        continue;
       }
+
+      const listMatch = /^[-*]\s+(.+)$/.exec(trimmed);
+      if (listMatch) {
+        flushParagraph();
+        listItems.push(listMatch[1]);
+        continue;
+      }
+
+      flushList();
+      paragraph.push(trimmed);
     }
     flushList();
+    flushParagraph();
 
-    return rendered.map((item) => item.html).join("<br/>");
+    return blocks.join("");
   });
 
-  return { __html: htmlParts.join("") };
+  return htmlParts.join("");
 };
+
+const ChatMessageContent = memo(function ChatMessageContent({
+  content,
+}: {
+  content: string;
+}) {
+  const html = useMemo(() => formatMarkdownToHtml(content), [content]);
+  return (
+    <div className="chat-md" style={{ lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: html }} />
+  );
+});
 
 function loadTreeFromStorage(): ChatTree {
   try {
@@ -744,7 +778,7 @@ export default function App() {
                   <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>
                     {m.role}
                   </div>
-                  <div style={{ lineHeight: 1.5 }} dangerouslySetInnerHTML={renderMarkdown(m.content)} />
+                  <ChatMessageContent content={m.content} />
                 </div>
               ))}
             </div>
