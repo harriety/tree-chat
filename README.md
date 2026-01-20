@@ -61,10 +61,10 @@ npm install
 Copy the example environment file:
 
 ```bash
-cp env.example .env
+cp env.example .env.local
 ```
 
-Edit `.env` and add your API keys as needed:
+Edit `.env.local` and add your API keys as needed:
 
 ```env
 VITE_OPENAI_API_KEY=your_api_key
