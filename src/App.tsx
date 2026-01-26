@@ -577,21 +577,18 @@ export default function App() {
     >
       <aside
         style={{
-          borderRight: "1px solid rgba(0,0,0,0.12)",
-          padding: 12,
+          borderRight: "1px solid hsl(var(--border-subtle))",
+          padding: 16,
           overflow: "auto",
           display: "flex",
           flexDirection: "column",
+          background: "hsl(var(--bg-secondary))",
         }}
       >
         <details
+          className="sidebar-section"
           style={{
-            marginBottom: 12,
-            padding: 10,
-            borderRadius: 12,
-            border: "1px solid rgba(0,0,0,0.12)",
-            background: "white",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+            marginBottom: 16,
           }}
         >
           <summary
@@ -599,49 +596,38 @@ export default function App() {
               listStyle: "none",
               cursor: "pointer",
               fontWeight: 700,
-              fontSize: 13,
-              letterSpacing: 0.2,
+              fontSize: 14,
+              color: "hsl(var(--text-primary))",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            Filters & Tools
+            <span style={{ fontSize: 18 }}>⚙️</span> Filters & Tools
           </summary>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
             <input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="Search title or content…"
-              style={{
-                borderRadius: 10,
-                border: "1px solid rgba(0,0,0,0.15)",
-                padding: "8px 10px",
-                outline: "none",
-              }}
+              className="input-fancy"
+              style={{ width: "100%" }}
             />
             <div style={{ display: "flex", gap: 8 }}>
               <input
                 type="datetime-local"
                 value={fromTime}
                 onChange={(e) => setFromTime(e.target.value)}
-                style={{
-                  flex: 1,
-                  borderRadius: 10,
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  padding: "6px 8px",
-                  outline: "none",
-                }}
+                className="input-fancy"
+                style={{ flex: 1, padding: "6px 10px" }}
                 title="From"
               />
               <input
                 type="datetime-local"
                 value={toTime}
                 onChange={(e) => setToTime(e.target.value)}
-                style={{
-                  flex: 1,
-                  borderRadius: 10,
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  padding: "6px 8px",
-                  outline: "none",
-                }}
+                className="input-fancy"
+                style={{ flex: 1, padding: "6px 10px" }}
                 title="To"
               />
             </div>
@@ -710,33 +696,30 @@ export default function App() {
           </div>
         </details>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <button
             onClick={() => setView("tree")}
+            className={view === "tree" ? "btn-primary" : "btn-secondary"}
             style={{
               flex: 1,
-              borderRadius: 8,
-              border: `1px solid ${view === "tree" ? "#0f766e" : "#10b981"}`,
-              background: view === "tree" ? "#0f766e" : "#10b981",
-              color: "white",
-              padding: "8px 12px",
+              borderRadius: 10,
+              padding: "10px 12px",
               cursor: "pointer",
-              fontWeight: view === "tree" ? 700 : 500,
+              border: view === "tree" ? "none" : "1px solid hsl(var(--border-med))",
             }}
           >
             Tree View
           </button>
           <button
             onClick={() => setView("mindmap")}
+            className={view === "mindmap" ? "btn-primary" : "btn-secondary"}
             style={{
               flex: 1,
-              borderRadius: 8,
-              border: `1px solid ${view === "mindmap" ? "#1d4ed8" : "#60a5fa"}`,
-              background: view === "mindmap" ? "#1d4ed8" : "#60a5fa",
-              color: "white",
-              padding: "8px 12px",
+              borderRadius: 10,
+              padding: "10px 12px",
               cursor: "pointer",
-              fontWeight: view === "mindmap" ? 700 : 500,
+              border: view === "mindmap" ? "none" : "1px solid hsl(var(--border-med))",
+              background: view === "mindmap" ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "white",
             }}
           >
             Mindmap View
@@ -748,12 +731,12 @@ export default function App() {
               localStorage.removeItem(STORAGE_KEY);
               setTree(createEmptyTree());
             }}
+            className="btn-secondary"
             style={{
-              borderRadius: 8,
-              border: "1px solid rgba(0,0,0,0.15)",
-              background: "white",
-              padding: "8px 10px",
+              borderRadius: 10,
+              padding: "10px 12px",
               cursor: "pointer",
+              flex: 0.4,
             }}
             title="Clear local storage and reset tree"
           >
@@ -812,27 +795,32 @@ export default function App() {
       >
         <header
           style={{
-            padding: "12px 16px",
-            borderBottom: "1px solid rgba(0,0,0,0.12)",
+            padding: "16px 20px",
+            borderBottom: "1px solid hsl(var(--border-subtle))",
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 16,
+            background: "white",
+            boxShadow: "var(--shadow-sm)",
+            zIndex: 10,
           }}
         >
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 18, color: "hsl(var(--text-primary))" }}>
               {activeNode?.title ?? "No active node"}
             </div>
             <div
               style={{
                 fontSize: 12,
-                opacity: 0.7,
+                color: "hsl(var(--text-tertiary))",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                marginTop: 2,
               }}
             >
-              Path: {pathToRoot.map((n) => n.title || "Untitled").join(" / ")}
+              <span style={{ fontWeight: 600, color: "hsl(var(--text-secondary))" }}>Path: </span>
+              {pathToRoot.map((n) => n.title || "Untitled").join(" / ")}
             </div>
           </div>
 
@@ -841,12 +829,11 @@ export default function App() {
               value={provider}
               onChange={(e) => setProvider(e.target.value as LLMProvider)}
               disabled={isGenerating}
+              className="input-fancy"
               style={{
-                borderRadius: 10,
-                border: "1px solid rgba(0,0,0,0.15)",
-                background: isGenerating ? "rgba(0,0,0,0.04)" : "white",
-                padding: "6px 10px",
+                padding: "6px 12px",
                 cursor: isGenerating ? "not-allowed" : "pointer",
+                background: isGenerating ? "hsl(var(--bg-secondary))" : "white",
               }}
               title="LLM Provider"
             >
@@ -861,13 +848,8 @@ export default function App() {
                   setTree((t) => restoreDeletedSubtree(t, lastDeleted));
                   setLastDeleted(null);
                 }}
-                style={{
-                  borderRadius: 10,
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  background: "white",
-                  padding: "6px 10px",
-                  cursor: "pointer",
-                }}
+                className="btn-secondary"
+                style={{ borderRadius: 10, padding: "6px 12px", fontSize: 13 }}
               >
                 Undo delete
               </button>
@@ -876,18 +858,13 @@ export default function App() {
             {activeNode?.parentId ? (
               <button
                 onClick={() => setTree((t) => setActiveNode(t, activeNode.parentId!))}
-                style={{
-                  borderRadius: 10,
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  background: "white",
-                  padding: "6px 10px",
-                  cursor: "pointer",
-                }}
+                className="btn-secondary"
+                style={{ borderRadius: 10, padding: "6px 12px", fontSize: 13 }}
               >
                 ↑ Back to parent
               </button>
             ) : (
-              <span style={{ fontSize: 12, opacity: 0.6 }}>Root</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "hsl(var(--text-tertiary))" }}>Root Node</span>
             )}
           </div>
         </header>
@@ -901,20 +878,20 @@ export default function App() {
           }}
         >
           {activeNode?.messages.length ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {activeNode.messages.map((m) => (
                 <div
                   key={m.id}
-                  style={{
-                    alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                    maxWidth: "78%",
-                    border: "1px solid rgba(0,0,0,0.12)",
-                    borderRadius: 14,
-                    padding: "10px 12px",
-                    background: "white",
-                  }}
+                  className={`message-bubble ${m.role === "user" ? "message-user" : "message-assistant"}`}
                 >
-                  <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 4 }}>
+                  <div style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: 4,
+                    opacity: 0.8
+                  }}>
                     {m.role}
                   </div>
                   <ChatMessageContent content={m.content} />
@@ -922,7 +899,18 @@ export default function App() {
               ))}
             </div>
           ) : (
-            <div style={{ opacity: 0.7 }}>No messages yet. Type something and send.</div>
+            <div style={{
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "hsl(var(--text-tertiary))",
+              flexDirection: "column",
+              gap: 12
+            }}>
+              <span style={{ fontSize: 48 }}>💬</span>
+              <div style={{ fontWeight: 500 }}>No messages yet. Start a conversation!</div>
+            </div>
           )}
         </section>
 
@@ -957,25 +945,20 @@ export default function App() {
 
         <footer
           style={{
-            borderTop: "1px solid rgba(0,0,0,0.12)",
-            padding: 12,
+            borderTop: "1px solid hsl(var(--border-subtle))",
+            padding: "16px 20px",
             display: "flex",
-            gap: 8,
+            gap: 12,
+            background: "white",
           }}
         >
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type here…"
+            placeholder="Type your message..."
             disabled={isGenerating}
-            style={{
-              flex: 1,
-              borderRadius: 12,
-              border: "1px solid rgba(0,0,0,0.18)",
-              padding: "10px 12px",
-              outline: "none",
-              background: isGenerating ? "rgba(0,0,0,0.04)" : "white",
-            }}
+            className="input-fancy"
+            style={{ flex: 1 }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 sendUserMessage();
@@ -985,29 +968,29 @@ export default function App() {
           <button
             onClick={sendUserMessage}
             disabled={isGenerating}
+            className="btn-primary"
             style={{
+              padding: "10px 24px",
               borderRadius: 12,
-              border: "1px solid rgba(0,0,0,0.15)",
-              background: isGenerating ? "rgba(0,0,0,0.04)" : "white",
-              padding: "10px 12px",
               cursor: isGenerating ? "not-allowed" : "pointer",
             }}
           >
             {isGenerating ? "Thinking..." : "Send"}
           </button>
-          <button
-            onClick={cancelRequest}
-            disabled={!isGenerating}
-            style={{
-              borderRadius: 12,
-              border: "1px solid rgba(0,0,0,0.15)",
-              background: !isGenerating ? "rgba(0,0,0,0.04)" : "white",
-              padding: "10px 12px",
-              cursor: !isGenerating ? "not-allowed" : "pointer",
-            }}
-          >
-            Cancel
-          </button>
+          {isGenerating && (
+            <button
+              onClick={cancelRequest}
+              className="btn-secondary"
+              style={{
+                padding: "10px 16px",
+                borderRadius: 12,
+                color: "#dc2626",
+                borderColor: "#fecaca",
+              }}
+            >
+              Stop
+            </button>
+          )}
         </footer>
       </main>
     </div>

@@ -8,6 +8,18 @@ Tree-Chat is designed for **non-linear thinkers**, deep exploration, and AI-assi
 
 ---
 
+## 🎬 UI Demo
+
+Experience the new, premium interface with glassmorphism, modern typography, and refined mindmap interactions.
+
+### 🌟 New Design
+![New UI Demo](docs/media/new-ui.webp)
+
+### 🕰️ Previous Design
+![Old UI Preview](docs/media/old-ui.webp)
+
+---
+
 ## Why Tree-Chat?
 
 Traditional chat interfaces force all thoughts into a single chronological timeline.

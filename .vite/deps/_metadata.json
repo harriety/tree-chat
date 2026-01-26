@@ -1,0 +1,55 @@
+{
+  "hash": "19cc785f",
+  "configHash": "63eec814",
+  "lockfileHash": "7e5c3f5f",
+  "browserHash": "eb32985a",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "eb3f894f",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "12820cf2",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "562cec74",
+      "needsInterop": true
+    },
+    "katex": {
+      "src": "../../node_modules/katex/dist/katex.mjs",
+      "file": "katex.js",
+      "fileHash": "418e789c",
+      "needsInterop": false
+    },
+    "reactflow": {
+      "src": "../../node_modules/reactflow/dist/esm/index.mjs",
+      "file": "reactflow.js",
+      "fileHash": "637b9c40",
+      "needsInterop": false
+    },
+    "dagre": {
+      "src": "../../node_modules/dagre/index.js",
+      "file": "dagre.js",
+      "fileHash": "b8f2f350",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-AQXA5AXE": {
+      "file": "chunk-AQXA5AXE.js"
+    },
+    "chunk-XOCTKAUZ": {
+      "file": "chunk-XOCTKAUZ.js"
+    },
+    "chunk-7D4SUZUM": {
+      "file": "chunk-7D4SUZUM.js"
+    }
+  }
+}

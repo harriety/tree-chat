@@ -80,27 +80,32 @@ function MindNode({ data }: NodeProps<MindNodeData>) {
     setIsEditing(false);
   };
 
-  const borderColor = isActive ? "#2563eb" : isInPath ? "#60a5fa" : "#e5e7eb";
+  const borderColor = isActive
+    ? "hsl(var(--brand-primary))"
+    : isInPath
+      ? "hsla(var(--brand-primary), 0.4)"
+      : "hsl(var(--border-subtle))";
 
   return (
     <div
       style={{
-        width: 260,
-        minHeight: 128,
-        borderRadius: 14,
-        border: `2px solid ${borderColor}`,
-        background: isActive ? "#eff6ff" : "white",
-        padding: 12,
+        width: 280,
+        minHeight: 140,
+        borderRadius: 20,
+        border: `1px solid ${borderColor}`,
+        background: isActive ? "white" : "var(--glass-bg)",
+        backdropFilter: "blur(12px)",
+        padding: 16,
         boxShadow: isHovered
-          ? "0 10px 22px rgba(37,99,235,0.18)"
-          : "0 2px 6px rgba(0,0,0,0.10)",
+          ? "0 12px 28px hsla(var(--brand-primary), 0.15)"
+          : "var(--shadow-md)",
         cursor: "pointer",
-        transition: "box-shadow 0.15s, border-color 0.15s, transform 0.15s",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 10,
         position: "relative",
-        transform: isHovered ? "translateY(-1px)" : "translateY(0)",
+        transform: isHovered ? "translateY(-4px)" : "translateY(0)",
       }}
       onMouseEnter={() => onHover(id)}
       onMouseLeave={() => onHover(null)}
@@ -129,13 +134,14 @@ function MindNode({ data }: NodeProps<MindNodeData>) {
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <div
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: 999,
-            background: isActive ? "#2563eb" : isInPath ? "#60a5fa" : "#d1d5db",
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: isActive ? "hsl(var(--brand-primary))" : isInPath ? "hsla(var(--brand-primary), 0.5)" : "hsl(var(--border-med))",
+            boxShadow: isActive ? "0 0 10px hsla(var(--brand-primary), 0.5)" : "none",
           }}
         />
-        <div style={{ fontSize: 11, color: "#6b7280" }}>{meta}</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "hsl(var(--text-tertiary))", textTransform: "uppercase", letterSpacing: "0.02em" }}>{meta.split(' · ')[0]} messages</div>
       </div>
 
       {isEditing ? (
@@ -152,19 +158,22 @@ function MindNode({ data }: NodeProps<MindNodeData>) {
           }}
           onBlur={commitRename}
           autoFocus
+          className="input-fancy"
           style={{
             width: "100%",
-            padding: "6px 8px",
-            borderRadius: 10,
-            border: "1px solid rgba(0,0,0,0.2)",
             fontSize: 14,
             fontWeight: 700,
           }}
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <div style={{ fontWeight: 800, fontSize: 14 }}>
-          {title || "Untitled"}
+        <div style={{
+          fontWeight: 700,
+          fontSize: 15,
+          color: isActive ? "hsl(var(--brand-primary))" : "hsl(var(--text-primary))",
+          lineHeight: 1.4
+        }}>
+          {title || "Untitled Thread"}
         </div>
       )}
 
@@ -266,23 +275,30 @@ function MindNode({ data }: NodeProps<MindNodeData>) {
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            const ok = window.confirm("Delete this node and all its children?");
+            const ok = window.confirm(`Delete "${title || 'Untitled'}" and all sub-threads?`);
             if (ok) onDelete(id);
           }}
           style={{
             borderRadius: 8,
-            border: "1px solid rgba(0,0,0,0.15)",
+            border: "1px solid hsl(0, 80%, 90%)",
             background: "white",
             padding: "2px 6px",
             cursor: "pointer",
             fontSize: 12,
             lineHeight: "16px",
-            width: 22,
-            height: 22,
+            width: 24,
+            height: 24,
+            color: "#dc2626",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            transition: "all 0.2s ease",
           }}
-          title="Delete"
+          title="Delete node"
+          className="btn-delete"
         >
-          X
+          ✕
         </button>
 
         <button
@@ -422,12 +438,12 @@ export function MindmapView({
           type: "smoothstep",
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: isPathEdge ? "#2563eb" : "#94a3b8",
+            color: isPathEdge ? "hsl(var(--brand-primary))" : "hsl(var(--border-med))",
           },
           style: {
-            stroke: isPathEdge ? "#2563eb" : "#94a3b8",
-            strokeWidth: isPathEdge ? 2.6 : isHoverEdge ? 2.2 : 1.6,
-            opacity: isPathEdge || isHoverEdge ? 1 : 0.7,
+            stroke: isPathEdge ? "hsl(var(--brand-primary))" : "hsl(var(--border-med))",
+            strokeWidth: isPathEdge ? 3 : isHoverEdge ? 2.5 : 2,
+            opacity: isPathEdge || isHoverEdge ? 1 : 0.4,
           },
         });
       }

@@ -27,8 +27,8 @@ export function TreeView({
   const root = tree.nodes[tree.rootId];
 
   return (
-    <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif" }}>
-      <div style={{ fontWeight: 700, marginBottom: 8 }}>Threads</div>
+    <div style={{ fontFamily: "var(--font-main)", color: "hsl(var(--text-primary))" }}>
+      <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", color: "hsl(var(--text-tertiary))" }}>Chat Threads</div>
       <TreeNodeView
         tree={tree}
         node={root}
@@ -101,13 +101,18 @@ function TreeNodeView({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          padding: "6px 8px",
+          gap: 10,
+          padding: "10px 12px",
           marginLeft: depth * 12,
-          borderRadius: 8,
+          borderRadius: 12,
           cursor: "pointer",
-          background: isActive ? "rgba(0,0,0,0.08)" : "transparent",
+          background: isActive ? "white" : "transparent",
+          boxShadow: isActive ? "var(--shadow-sm)" : "none",
+          border: isActive ? "1px solid hsl(var(--brand-primary), 0.2)" : "1px solid transparent",
+          transition: "all 0.2s ease",
+          marginBottom: 4,
         }}
+        className={!isActive ? "tree-node-hover" : ""}
         onClick={() => onSelect(node.id)}
         title={node.id}
       >
@@ -118,18 +123,22 @@ function TreeNodeView({
             e.stopPropagation();
             if (hasChildren) onToggleCollapse(node.id);
           }}
+          className="btn-secondary"
           style={{
-            width: 22,
-            height: 22,
+            width: 24,
+            height: 24,
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             borderRadius: 6,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "white",
-            cursor: hasChildren ? "pointer" : "not-allowed",
-            opacity: hasChildren ? 1 : 0.4,
+            cursor: hasChildren ? "pointer" : "default",
+            opacity: hasChildren ? 1 : 0.3,
+            fontSize: 10,
           }}
           aria-label="toggle collapse"
         >
-          {hasChildren ? (node.isCollapsed ? "▸" : "▾") : "•"}
+          {hasChildren ? (node.isCollapsed ? "▶" : "▼") : "•"}
         </button>
 
         {/* Title */}
@@ -160,9 +169,11 @@ function TreeNodeView({
                 setEditTitle(node.title);
               }}
             >
-              <div style={{ fontWeight: 600 }}>{node.title || "Untitled"}</div>
-              <div style={{ fontSize: 12, opacity: 0.65 }}>
-                {node.messages.length} msgs · {node.childrenIds.length} children
+              <div style={{ fontWeight: 600, fontSize: 14, color: isActive ? "hsl(var(--brand-primary))" : "inherit" }}>
+                {node.title || "Untitled"}
+              </div>
+              <div style={{ fontSize: 11, color: "hsl(var(--text-tertiary))", marginTop: 2 }}>
+                {node.messages.length} msgs · {node.childrenIds.length} kids
               </div>
             </div>
           )}
@@ -175,12 +186,12 @@ function TreeNodeView({
             e.stopPropagation();
             onAddChild(node.id);
           }}
+          className="btn-secondary"
           style={{
             borderRadius: 8,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "white",
             padding: "4px 8px",
-            cursor: "pointer",
+            fontSize: 11,
+            fontWeight: 600,
           }}
         >
           + Child
@@ -210,15 +221,17 @@ function TreeNodeView({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            const ok = window.confirm("Delete this node and all its children?");
+            const ok = window.confirm(`Delete "${node.title || 'Untitled'}" and all sub-threads?`);
             if (ok) onDelete(node.id);
           }}
+          className="btn-secondary"
           style={{
             borderRadius: 8,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "white",
-            padding: "4px 8px",
-            cursor: "pointer",
+            padding: "4px 10px",
+            fontSize: 11,
+            color: "#dc2626",
+            borderColor: "#fecaca",
+            fontWeight: 600,
           }}
         >
           Delete
