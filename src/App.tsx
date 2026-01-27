@@ -17,11 +17,22 @@ import {
 import { sendChat, type LLMProvider } from "./services/llm";
 import type { ChatNode, ChatTree, Message } from "./types/chat";
 
-const STORAGE_KEY = "tree-chat:tree";
+const STORAGE_KEY_PREFIX = "tree-chat:tree:";
+const TREE_LIST_KEY = "tree-chat:tree-list";
+const ACTIVE_TREE_ID_KEY = "tree-chat:active-tree-id";
+const SIDEBAR_WIDTH_KEY = "tree-chat:sidebar-width";
+const OLD_STORAGE_KEY = "tree-chat:tree"; // For migration
+
 const PROVIDER_KEY = "tree-chat:provider";
 const BACKUP_KEY = "tree-chat:backups";
 const MAX_BACKUPS = 5;
 const BACKUP_INTERVAL_MS = 2 * 60 * 1000;
+
+type TreeMetadata = {
+  id: string;
+  title: string;
+  updatedAt: number;
+};
 
 type DeletedSnapshot = {
   rootId: string;
@@ -253,23 +264,94 @@ const ChatMessageContent = memo(function ChatMessageContent({
   );
 });
 
-function loadTreeFromStorage(): ChatTree {
+function loadTreeList(): TreeMetadata[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createEmptyTree();
-    const parsed = JSON.parse(raw) as ChatTree;
-    if (!parsed?.rootId || !parsed?.activeNodeId || !parsed?.nodes) {
-      return createEmptyTree();
-    }
-    return parsed;
-  } catch (err) {
-    console.warn("Failed to load tree from localStorage", err);
-    return createEmptyTree();
+    const raw = localStorage.getItem(TREE_LIST_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as TreeMetadata[];
+  } catch {
+    return [];
   }
 }
 
+function saveTreeList(list: TreeMetadata[]) {
+  localStorage.setItem(TREE_LIST_KEY, JSON.stringify(list));
+}
+
+function loadTree(id: string): ChatTree | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PREFIX + id);
+    if (!raw) return null;
+    return JSON.parse(raw) as ChatTree;
+  } catch {
+    return null;
+  }
+}
+
+function saveTree(id: string, tree: ChatTree) {
+  localStorage.setItem(STORAGE_KEY_PREFIX + id, JSON.stringify(tree));
+}
+
+function migrateOldData(): { treeList: TreeMetadata[]; activeId: string | null } {
+  const oldRaw = localStorage.getItem(OLD_STORAGE_KEY);
+  if (oldRaw) {
+    try {
+      const oldTree = JSON.parse(oldRaw) as ChatTree;
+      const id = makeId();
+      const metadata: TreeMetadata = {
+        id,
+        title: oldTree.nodes[oldTree.rootId]?.title || "Migrated Tree",
+        updatedAt: Date.now(),
+      };
+      saveTree(id, oldTree);
+      saveTreeList([metadata]);
+      localStorage.setItem(ACTIVE_TREE_ID_KEY, id);
+      localStorage.removeItem(OLD_STORAGE_KEY);
+      return { treeList: [metadata], activeId: id };
+    } catch {
+      localStorage.removeItem(OLD_STORAGE_KEY);
+    }
+  }
+  return { treeList: [], activeId: null };
+}
+
 export default function App() {
-  const [tree, setTree] = useState<ChatTree>(() => loadTreeFromStorage());
+  const [activeTreeId, setActiveTreeId] = useState<string>(() => {
+    const migrated = migrateOldData();
+    if (migrated.activeId) return migrated.activeId;
+    const saved = localStorage.getItem(ACTIVE_TREE_ID_KEY);
+    if (saved && loadTree(saved)) return saved;
+    const list = loadTreeList();
+    if (list.length > 0) return list[0].id;
+    return "";
+  });
+
+  const [treeList, setTreeList] = useState<TreeMetadata[]>(() => {
+    const list = loadTreeList();
+    return list;
+  });
+
+  const [tree, setTree] = useState<ChatTree>(() => {
+    if (activeTreeId) {
+      const loaded = loadTree(activeTreeId);
+      if (loaded) return loaded;
+    }
+    const newTree = createEmptyTree();
+    const newId = makeId();
+    const metadata: TreeMetadata = {
+      id: newId,
+      title: "New Tree",
+      updatedAt: Date.now(),
+    };
+    saveTree(newId, newTree);
+    const newList = [metadata];
+    saveTreeList(newList);
+    setTreeList(newList);
+    setActiveTreeId(newId);
+    localStorage.setItem(ACTIVE_TREE_ID_KEY, newId);
+    return newTree;
+  });
+
   const [view, setView] = useState<"tree" | "mindmap">("tree");
   const [input, setInput] = useState("");
 
@@ -287,6 +369,14 @@ export default function App() {
   } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  const [deletingTreeId, setDeletingTreeId] = useState<string | null>(null);
+  const [editingTreeId, setEditingTreeId] = useState<string | null>(null);
+  const [editingTreeTitle, setEditingTreeTitle] = useState("");
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    return saved ? parseInt(saved, 10) : 320;
+  });
+  const [isResizing, setIsResizing] = useState(false);
   const [lastDeleted, setLastDeleted] = useState<DeletedSnapshot | null>(null);
   const [autoRenameId, setAutoRenameId] = useState<string | null>(null);
 
@@ -369,8 +459,26 @@ export default function App() {
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
+      if (!activeTreeId) return;
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(tree));
+        saveTree(activeTreeId, tree);
+        const rootNode = tree.nodes[tree.rootId];
+        // Only auto-update title if it's not currently being manually edited
+        if (editingTreeId !== activeTreeId) {
+          const newTitle = rootNode?.title && rootNode.title !== "Root"
+            ? rootNode.title
+            : treeList.find(m => m.id === activeTreeId)?.title || "New Tree";
+
+          const newList = treeList.map(m =>
+            m.id === activeTreeId
+              ? { ...m, title: newTitle, updatedAt: Date.now() }
+              : m
+          );
+          if (JSON.stringify(newList) !== JSON.stringify(treeList)) {
+            saveTreeList(newList);
+            setTreeList(newList);
+          }
+        }
       } catch (err) {
         console.warn("Failed to save tree", err);
       }
@@ -392,7 +500,33 @@ export default function App() {
       }
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [tree]);
+  }, [tree, activeTreeId, treeList, editingTreeId]);
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const newWidth = Math.max(260, Math.min(800, e.clientX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isResizing]);
 
   const captureDeletedSubtree = (t: ChatTree, nodeId: string): DeletedSnapshot | null => {
     const node = t.nodes[nodeId];
@@ -567,12 +701,80 @@ export default function App() {
     }
   };
 
+  const handleRenameTree = (id: string, newTitle: string) => {
+    if (editingTreeId === null) return;
+    const newList = treeList.map(m => m.id === id ? { ...m, title: newTitle || "Untitled", updatedAt: Date.now() } : m);
+    setTreeList(newList);
+    saveTreeList(newList);
+
+    // If we're renaming the active tree, also update the root node title if it's generic
+    if (id === activeTreeId) {
+      const rootNode = tree.nodes[tree.rootId];
+      if (rootNode && (rootNode.title === "Root" || rootNode.title === "New thread" || !rootNode.title)) {
+        setTree(t => renameNode(t, tree.rootId, newTitle));
+      }
+    }
+
+    setEditingTreeId(null);
+  };
+
+  const handleNewTree = () => {
+    const newId = makeId();
+    const newTree = createEmptyTree();
+    const metadata: TreeMetadata = {
+      id: newId,
+      title: "New Tree",
+      updatedAt: Date.now(),
+    };
+    const newList = [metadata, ...treeList];
+    saveTreeList(newList);
+    setTreeList(newList);
+    saveTree(newId, newTree);
+    setTree(newTree);
+    setActiveTreeId(newId);
+    localStorage.setItem(ACTIVE_TREE_ID_KEY, newId);
+  };
+
+  const handleSwitchTree = (id: string) => {
+    if (id === activeTreeId) return;
+    const loaded = loadTree(id);
+    if (loaded) {
+      setTree(loaded);
+      setActiveTreeId(id);
+      localStorage.setItem(ACTIVE_TREE_ID_KEY, id);
+    }
+  };
+
+  const handleDeleteTree = (id: string) => {
+    if (treeList.length <= 1) {
+      window.alert("You must have at least one workspace.");
+      setDeletingTreeId(null);
+      return;
+    }
+
+    const newList = treeList.filter(m => m.id !== id);
+    saveTreeList(newList);
+    setTreeList(newList);
+    localStorage.removeItem(STORAGE_KEY_PREFIX + id);
+
+    if (id === activeTreeId) {
+      const nextId = newList[0].id;
+      const loaded = loadTree(nextId);
+      if (loaded) {
+        setTree(loaded);
+        setActiveTreeId(nextId);
+        localStorage.setItem(ACTIVE_TREE_ID_KEY, nextId);
+      }
+    }
+    setDeletingTreeId(null);
+  };
+
   return (
     <div
       style={{
         height: "100vh",
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        display: "flex", // Changed from grid to flex for better resizable control
+        overflow: "hidden",
       }}
     >
       <aside
@@ -583,8 +785,144 @@ export default function App() {
           display: "flex",
           flexDirection: "column",
           background: "hsl(var(--bg-secondary))",
+          width: sidebarWidth,
+          minWidth: 260,
+          maxWidth: 800,
+          flexShrink: 0,
         }}
       >
+        <div className="sidebar-section" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h3 style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", color: "hsl(var(--text-tertiary))" }}>Workspaces</h3>
+            <button
+              onClick={handleNewTree}
+              className="btn-primary"
+              style={{ padding: "4px 8px", borderRadius: 8, fontSize: 11 }}
+            >
+              + New
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {treeList.map(t => (
+              <div
+                key={t.id}
+                onClick={() => handleSwitchTree(t.id)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  background: activeTreeId === t.id ? "white" : "transparent",
+                  boxShadow: activeTreeId === t.id ? "var(--shadow-sm)" : "none",
+                  border: activeTreeId === t.id ? "1px solid hsl(var(--brand-primary), 0.2)" : "1px solid transparent",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{
+                  fontWeight: activeTreeId === t.id ? 600 : 400,
+                  color: activeTreeId === t.id ? "hsl(var(--brand-primary))" : "inherit",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  flex: 1
+                }}>
+                  {editingTreeId === t.id ? (
+                    <input
+                      autoFocus
+                      value={editingTreeTitle}
+                      onChange={(e) => setEditingTreeTitle(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRenameTree(t.id, editingTreeTitle);
+                        if (e.key === "Escape") setEditingTreeId(null);
+                      }}
+                      onBlur={() => handleRenameTree(t.id, editingTreeTitle)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="input-fancy"
+                      style={{ width: "100%", padding: "4px 8px", fontSize: 13 }}
+                    />
+                  ) : (
+                    <div
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setEditingTreeId(t.id);
+                        setEditingTreeTitle(t.title);
+                      }}
+                      title="Double click to rename"
+                    >
+                      {t.title}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {deletingTreeId === t.id ? (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTree(t.id);
+                        }}
+                        style={{
+                          background: "#dc2626",
+                          border: "none",
+                          color: "white",
+                          borderRadius: 6,
+                          padding: "2px 6px",
+                          fontSize: 10,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingTreeId(null);
+                        }}
+                        style={{
+                          background: "#e5e7eb",
+                          border: "none",
+                          color: "#374151",
+                          borderRadius: 6,
+                          padding: "2px 6px",
+                          fontSize: 10,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Esc
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingTreeId(t.id);
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "hsl(var(--text-tertiary))",
+                        cursor: "pointer",
+                        fontSize: 16,
+                        padding: "0 4px",
+                        opacity: 0.6
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.opacity = "1"}
+                      onMouseOut={(e) => e.currentTarget.style.opacity = "0.6"}
+                      title="Delete workspace"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <details
           className="sidebar-section"
           style={{
@@ -726,10 +1064,11 @@ export default function App() {
           </button>
           <button
             onClick={() => {
-              const ok = window.confirm("Reset tree and clear local data?");
+              const ok = window.confirm("Reset THIS tree and clear its data?");
               if (!ok) return;
-              localStorage.removeItem(STORAGE_KEY);
-              setTree(createEmptyTree());
+              const newTree = createEmptyTree();
+              setTree(newTree);
+              saveTree(activeTreeId, newTree);
             }}
             className="btn-secondary"
             style={{
@@ -785,11 +1124,37 @@ export default function App() {
         </div>
       </aside>
 
+      <div
+        onPointerDown={(e) => {
+          e.preventDefault();
+          setIsResizing(true);
+        }}
+        style={{
+          width: 5,
+          cursor: "col-resize",
+          background: isResizing ? "hsl(var(--brand-primary))" : "transparent",
+          borderLeft: "1px solid hsl(var(--border-subtle))",
+          transition: "background 0.2s",
+          zIndex: 50,
+          position: "relative",
+          marginLeft: -2,
+          marginRight: -2,
+        }}
+        className="resize-splitter"
+        onMouseEnter={(e) => {
+          if (!isResizing) e.currentTarget.style.background = "hsla(var(--brand-primary), 0.2)";
+        }}
+        onMouseLeave={(e) => {
+          if (!isResizing) e.currentTarget.style.background = "transparent";
+        }}
+      />
+
       <main
         style={{
           display: "flex",
           flexDirection: "column",
           minWidth: 0,
+          flex: 1,
           minHeight: 0,
         }}
       >

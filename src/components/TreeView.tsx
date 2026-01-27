@@ -72,6 +72,7 @@ function TreeNodeView({
   onDelete: (nodeId: string) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editTitle, setEditTitle] = useState(node.title);
   const isActive = tree.activeNodeId === node.id;
   const hasChildren = node.childrenIds.length > 0;
@@ -217,25 +218,61 @@ function TreeNodeView({
           </button>
         ) : null}
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            const ok = window.confirm(`Delete "${node.title || 'Untitled'}" and all sub-threads?`);
-            if (ok) onDelete(node.id);
-          }}
-          className="btn-secondary"
-          style={{
-            borderRadius: 8,
-            padding: "4px 10px",
-            fontSize: 11,
-            color: "#dc2626",
-            borderColor: "#fecaca",
-            fontWeight: 600,
-          }}
-        >
-          Delete
-        </button>
+        {isDeleting ? (
+          <div style={{ display: "flex", gap: 4 }}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(node.id);
+                setIsDeleting(false);
+              }}
+              className="btn-primary"
+              style={{
+                borderRadius: 8,
+                padding: "4px 8px",
+                fontSize: 10,
+                background: "#dc2626",
+              }}
+            >
+              Sure?
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDeleting(false);
+              }}
+              className="btn-secondary"
+              style={{
+                borderRadius: 8,
+                padding: "4px 8px",
+                fontSize: 10,
+              }}
+            >
+              Abort
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsDeleting(true);
+            }}
+            className="btn-secondary"
+            style={{
+              borderRadius: 8,
+              padding: "4px 10px",
+              fontSize: 11,
+              color: "#dc2626",
+              borderColor: "#fecaca",
+              fontWeight: 600,
+            }}
+          >
+            Delete
+          </button>
+        )}
       </div>
 
       {!node.isCollapsed &&

@@ -66,6 +66,7 @@ function MindNode({ data }: NodeProps<MindNodeData>) {
     onHover,
   } = data;
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [draftTitle, setDraftTitle] = useState(title);
 
   useEffect(() => {
@@ -271,35 +272,78 @@ function MindNode({ data }: NodeProps<MindNodeData>) {
           R
         </button>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            const ok = window.confirm(`Delete "${title || 'Untitled'}" and all sub-threads?`);
-            if (ok) onDelete(id);
-          }}
-          style={{
-            borderRadius: 8,
-            border: "1px solid hsl(0, 80%, 90%)",
-            background: "white",
-            padding: "2px 6px",
-            cursor: "pointer",
-            fontSize: 12,
-            lineHeight: "16px",
-            width: 24,
-            height: 24,
-            color: "#dc2626",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 700,
-            transition: "all 0.2s ease",
-          }}
-          title="Delete node"
-          className="btn-delete"
-        >
-          ✕
-        </button>
+        {isDeleting ? (
+          <div style={{ display: "flex", gap: 4 }}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(id);
+                setIsDeleting(false);
+              }}
+              style={{
+                borderRadius: 8,
+                border: "none",
+                background: "#dc2626",
+                color: "white",
+                padding: "2px 6px",
+                fontSize: 10,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Sure?
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDeleting(false);
+              }}
+              style={{
+                borderRadius: 8,
+                border: "none",
+                background: "#e5e7eb",
+                color: "#374151",
+                padding: "2px 6px",
+                fontSize: 10,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Esc
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsDeleting(true);
+            }}
+            style={{
+              borderRadius: 8,
+              border: "1px solid hsl(0, 80%, 90%)",
+              background: "white",
+              padding: "2px 6px",
+              cursor: "pointer",
+              fontSize: 12,
+              lineHeight: "16px",
+              width: 24,
+              height: 24,
+              color: "#dc2626",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              transition: "all 0.2s ease",
+            }}
+            title="Delete node"
+            className="btn-delete"
+          >
+            ✕
+          </button>
+        )}
 
         <button
           type="button"
