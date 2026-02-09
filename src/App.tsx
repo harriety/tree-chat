@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import "./App.css";
 
 import { MindmapView } from "./components/MindmapView";
 import { TreeView } from "./components/TreeView";
@@ -1034,50 +1035,31 @@ export default function App() {
           </div>
         </details>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <button
-            onClick={() => setView("tree")}
-            className={view === "tree" ? "btn-primary" : "btn-secondary"}
-            style={{
-              flex: 1,
-              borderRadius: 10,
-              padding: "10px 12px",
-              cursor: "pointer",
-              border: view === "tree" ? "none" : "1px solid hsl(var(--border-med))",
-            }}
-          >
-            Tree View
-          </button>
-          <button
-            onClick={() => setView("mindmap")}
-            className={view === "mindmap" ? "btn-primary" : "btn-secondary"}
-            style={{
-              flex: 1,
-              borderRadius: 10,
-              padding: "10px 12px",
-              cursor: "pointer",
-              border: view === "mindmap" ? "none" : "1px solid hsl(var(--border-med))",
-              background: view === "mindmap" ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "white",
-            }}
-          >
-            Mindmap View
-          </button>
+        <div className="view-toggle-row">
+          <div className="view-toggle-pill">
+            <button
+              onClick={() => setView("tree")}
+              className={`view-toggle-btn ${view === "tree" ? "active" : ""}`}
+            >
+              Tree
+            </button>
+            <button
+              onClick={() => setView("mindmap")}
+              className={`view-toggle-btn ${view === "mindmap" ? "active" : ""}`}
+            >
+              Mindmap
+            </button>
+          </div>
           <button
             onClick={() => {
-              const ok = window.confirm("Reset THIS tree and clear its data?");
+              const ok = window.confirm("Reset this workspace? This will clear all its data.");
               if (!ok) return;
               const newTree = createEmptyTree();
               setTree(newTree);
               saveTree(activeTreeId, newTree);
             }}
-            className="btn-secondary"
-            style={{
-              borderRadius: 10,
-              padding: "10px 12px",
-              cursor: "pointer",
-              flex: 0.4,
-            }}
-            title="Clear local storage and reset tree"
+            className="btn-reset-minimal"
+            title="Reset workspace"
           >
             Reset
           </button>
@@ -1122,7 +1104,7 @@ export default function App() {
             />
           )}
         </div>
-      </aside>
+      </aside >
 
       <div
         onPointerDown={(e) => {
@@ -1358,6 +1340,6 @@ export default function App() {
           )}
         </footer>
       </main>
-    </div>
+    </div >
   );
 }
